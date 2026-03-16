@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZestyBite - ¡Sabor Explosivo en tu Puerta!</title>
+    <style>
+        :root {
+            --primary: #ff6b35;
+            --secondary: #d72638;
+            --accent: #f7b2bd;
+            --dark: #2b2d42;
+            --light: #edf2f4;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--light);
+            font-family: 'Poppins', 'Segoe UI', Roboto, sans-serif;
+            color: var(--dark);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 15px 50px rgba(255, 107, 53, 0.15);
+        }
+
+        .header {
+            padding: 40px 30px;
+            text-align: center;
+            background-color: var(--primary);
+            position: relative;
+        }
+
+        .logo {
+            width: 140px;
+            height: auto;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.1));
+        }
+
+        .hero {
+            padding: 50px 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 34px;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        p {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 20px 45px;
+            background-color: var(--secondary);
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 18px;
+            transform: rotate(-2deg);
+            box-shadow: 5px 5px 0px var(--dark);
+            transition: all 0.2s ease;
+        }
+
+        .cta-button:hover {
+            transform: rotate(0deg) scale(1.05);
+            box-shadow: 2px 2px 0px var(--dark);
+        }
+
+        .promo-banner {
+            margin: 40px;
+            padding: 30px;
+            background-color: #fff4e1;
+            border: 3px dashed var(--primary);
+            border-radius: 25px;
+            text-align: center;
+        }
+
+        .promo-code {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--primary);
+            letter-spacing: 5px;
+        }
+
+        .menu-preview {
+            display: flex;
+            padding: 0 40px 40px 40px;
+            gap: 15px;
+        }
+
+        .menu-item {
+            flex: 1;
+            aspect-ratio: 1;
+            background-color: var(--light);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--primary);
+            border: 2px solid transparent;
+        }
+
+        .menu-item:hover {
+            border-color: var(--secondary);
+        }
+
+        .footer {
+            padding: 40px;
+            background-color: var(--dark);
+            color: #ffffff;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="./images/zestybite_logo.png" alt="ZestyBite Logo" class="logo">
+        </div>
+        <div class="hero">
+            <h1>¿Hambre de Aventuras?</h1>
+            <p>Tus platillos favoritos, cocinados por chefs apasionados y entregados en tiempo récord. ¡El festín
+                comienza aquí!</p>
+            <a href="#" class="cta-button">¡PIDE YA!</a>
+        </div>
+        <div class="promo-banner">
+            <p style="margin: 0; text-transform: uppercase; font-weight: 800;">Usa este código en tu primer pedido:</p>
+            <div class="promo-code">ZESTY50</div>
+            <p style="margin: 10px 0 0 0; font-size: 12px;">Válido hoy hasta la medianoche.</p>
+        </div>
+        <div class="menu-preview">
+            <div class="menu-item">Burgers 🍔</div>
+            <div class="menu-item">Pizza 🍕</div>
+            <div class="menu-item">Tacos 🌮</div>
+        </div>
+        <div class="footer">
+            <p>Buen provecho, te desea el equipo de ZestyBite.</p>
+            <p>&copy; 2026 ZestyBite Food Services. Calle del Sabor 123.</p>
+            <p><a href="#">App Store</a> | <a href="#">Play Store</a> | <a href="#">Darse de baja</a></p>
+        </div>
+    </div>
+</body>
+
+</html>

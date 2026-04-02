@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
     QWidget,
@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
 )
+
+from database.campaigns import obtener_campanas
 
 
 class PhishingScreen(QWidget):
@@ -51,14 +53,23 @@ class PhishingScreen(QWidget):
         stats_layout.setContentsMargins(0, 0, 0, 0)
         stats_layout.setSpacing(16)
 
-        stats_data = [
-            ("4", "Total Campañas", "✉"),
-            ("2", "Activas", "⏱"),
-            ("2", "Finalizadas", "✓"),
-            ("63", "Clics Totales", "🖱"),
+        self.stats_data = {
+            "Total Campañas": "0",
+            "Activas": "0",
+            "Finalizadas": "0",
+            "Clics Totales": "0"
+        }
+        
+        self.stats_widgets = {}
+
+        stats_base = [
+            ("Total Campañas", "✉"),
+            ("Activas", "⏱"),
+            ("Finalizadas", "✓"),
+            ("Clics Totales", "🖱"),
         ]
 
-        for val, lbl, icon_text in stats_data:
+        for lbl, icon_text in stats_base:
             card = QWidget()
             card.setProperty("class", "stat-card")
             card_layout = QVBoxLayout(card)
@@ -67,7 +78,7 @@ class PhishingScreen(QWidget):
             icon_lbl = QLabel(icon_text)
             icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            val_lbl = QLabel(val)
+            val_lbl = QLabel("0")
             val_lbl.setObjectName("StatValue")
             val_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -80,6 +91,7 @@ class PhishingScreen(QWidget):
             card_layout.addWidget(val_lbl)
             card_layout.addWidget(text_lbl)
 
+            self.stats_widgets[lbl] = val_lbl
             stats_layout.addWidget(card)
 
         layout.addWidget(stats_widget)
@@ -109,40 +121,89 @@ class PhishingScreen(QWidget):
         campaign_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
         campaign_table.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        mock_data = [
-            ("CAM-001", "Suplantación de TI - Reset Password", "Credenciales", "Finalizada", "45", "32", "18", "5"),
-            ("CAM-002", "Actualización de nómina urgente", "Urgencia", "Activa", "30", "22", "8", "3"),
-            ("CAM-003", "Premio de fin de año - Encuesta", "Incentivo", "Finalizada", "60", "48", "25", "7"),
-            ("CAM-004", "Verificación de cuenta Office 365", "Credenciales", "Activa", "50", "35", "12", "8"),
-        ]
+        self.campaign_table = campaign_table
+        table_layout.addWidget(self.campaign_table)
 
-        for r, row_data in enumerate(mock_data):
+        layout.addWidget(table_card, 1)
+
+        # Load campaigns directly on init
+        self.load_campaigns()
+
+        # Timer for auto-refresh (every 5 seconds)
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.timeout.connect(self.load_campaigns)
+        self.refresh_timer.start(5000)  # 5 seconds
+
+    def load_campaigns(self):
+        campanas = obtener_campanas()
+        
+        self.campaign_table.setRowCount(0)
+        
+        total = len(campanas)
+        activas = sum(1 for c in campanas if c.get("estado") == "active")
+        finalizadas = sum(1 for c in campanas if c.get("estado") == "finished")
+        clics_totales = sum(c.get("clicks") or 0 for c in campanas)
+        
+        self.stats_widgets["Total Campañas"].setText(str(total))
+        self.stats_widgets["Activas"].setText(str(activas))
+        self.stats_widgets["Finalizadas"].setText(str(finalizadas))
+        self.stats_widgets["Clics Totales"].setText(str(clics_totales))
+        
+        self.campaign_table.setRowCount(total)
+        
+        for r, cmp in enumerate(campanas):
+            # mapping values
+            id_text = f"CAM-{cmp.get('id_campaign', 0):03d}"
+            nombre = cmp.get("name", "N/A")
+            
+            tipo_map = {
+                "password_reset": "Credenciales",
+                "urgent_request": "Urgencia",
+                "survey_reward": "Incentivo",
+                "attachment_malware": "Malware"
+            }
+            tipo = tipo_map.get(cmp.get("attack_type", ""), "Credenciales")
+            
+            estado = "Activa" if cmp.get("estado") == "active" else "Finalizada"
+            usuarios = str(cmp.get("usuarios", 0))
+            
+            # Percentages
+            usuarios_int = cmp.get("usuarios") or 0
+            aperturas = cmp.get("aperturas") or 0
+            clicks = cmp.get("clicks") or 0
+            
+            pct_aperturas = int((aperturas / usuarios_int * 100)) if usuarios_int > 0 else 0
+            pct_clics = int((clicks / usuarios_int * 100)) if usuarios_int > 0 else 0
+            
+            estr_pct_ap = f"{pct_aperturas}%"
+            estr_pct_cl = f"{pct_clics}%"
+            reportes = str(cmp.get("reportes") or 0)
+            
+            row_data = [
+                id_text, nombre, tipo, estado, usuarios, estr_pct_ap, estr_pct_cl, reportes
+            ]
+            
             for c, text in enumerate(row_data):
                 item = QTableWidgetItem(text)
 
-                # Styling for specific columns
                 if c == 0:  # ID
                     item.setForeground(QColor("#60A5FA"))
                 elif c == 3:  # Estado
-                    # Usar "pastilla" decorativa
                     if text == "Finalizada":
                         item.setForeground(QColor("#9CA3AF"))
                     else:
                         item.setForeground(QColor("#34D399"))
-                elif c == 6:  # Clics (orange/red for high)
-                    item.setForeground(QColor("#F97316"))
-                elif c == 7:  # Reportes (green for good)
+                elif c == 6:  # Clics
+                    # color por %
+                    if pct_clics > 15:
+                        item.setForeground(QColor("#F97316"))
+                elif c == 7:  # Reportes
                     item.setForeground(QColor("#34D399"))
 
-                # Center align numbers
                 if c >= 4:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
 
-                campaign_table.setItem(r, c, item)
-
-        table_layout.addWidget(campaign_table)
-
-        layout.addWidget(table_card, 1)
+                self.campaign_table.setItem(r, c, item)
 

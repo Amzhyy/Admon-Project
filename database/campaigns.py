@@ -279,8 +279,12 @@ def predecir_riesgo_ia(id_user, attack_type_id):
         rol_id = 1 if "admin" in rol_str else 2
         
         # 3. Preparar datos para el modelo
-        duracion_estandar = 7
-        X_input = pd.DataFrame([[attack_type_id, clics_previos, duracion_estandar, rol_id]], 
+        # Se obtiene dinámicamente la duración de la última campaña registrada (ya que es constante)
+        cursor.execute("SELECT DATEDIFF(end_date, start_date) as duracion FROM campaign ORDER BY id_campaign DESC LIMIT 1")
+        res_dur = cursor.fetchone()
+        duracion_final = res_dur['duracion'] if res_dur and res_dur['duracion'] is not None else 7
+
+        X_input = pd.DataFrame([[attack_type_id, clics_previos, duracion_final, rol_id]], 
                                columns=['attack_type_id', 'clics_previos_usuario', 'duracion_dias_campana', 'rol_usuario_id'])
         
         # 4. Cargar modelo y predecir

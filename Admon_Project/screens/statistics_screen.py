@@ -141,15 +141,15 @@ class StatisticsScreen(QWidget):
         kl2.addWidget(self.kpi_clicks)
         kpi_layout.addWidget(k_card2)
 
-        # Card 3
-        k_card3 = QWidget()
-        k_card3.setProperty("class", "stat-card")
-        kl3 = QVBoxLayout(k_card3)
-        kl3.addWidget(QLabel("Tasa de reporte"))
-        self.kpi_reports = QLabel("0%")
-        self.kpi_reports.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        kl3.addWidget(self.kpi_reports)
-        kpi_layout.addWidget(k_card3)
+        # Card 2
+        k_card2 = QWidget()
+        k_card2.setProperty("class", "stat-card")
+        kl2 = QVBoxLayout(k_card2)
+        kl2.addWidget(QLabel("Tasa de clics"))
+        self.kpi_clicks = QLabel("0%")
+        self.kpi_clicks.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        kl2.addWidget(self.kpi_clicks)
+        kpi_layout.addWidget(k_card2)
 
         summary_layout.addLayout(kpi_layout)
 
@@ -158,92 +158,77 @@ class StatisticsScreen(QWidget):
         ai_box.setProperty("class", "ai-analysis-box")
         ai_layout = QVBoxLayout(ai_box)
 
-        self.ai_text = QLabel("<b>Análisis IA:</b> Cargando datos...")
+        self.ai_text = QLabel("<b>Análisis IA:</b> Cargando recomendaciones...")
         self.ai_text.setWordWrap(True)
         ai_layout.addWidget(self.ai_text)
 
         summary_layout.addWidget(ai_box)
         layout.addWidget(summary_card)
 
-        # --- INTERACCIÓN CON IA ---
-        ai_chat_card = QWidget()
-        ai_chat_card.setProperty("class", "ai-chat-card")
-        chat_layout = QVBoxLayout(ai_chat_card)
-        chat_layout.setContentsMargins(20, 20, 20, 20)
-        chat_layout.setSpacing(16)
+        # --- PREDICTOR DE RIESGO IA (REAL) ---
+        ai_card = QWidget()
+        ai_card.setProperty("class", "card")
+        ai_layout = QVBoxLayout(ai_card)
+        ai_layout.setContentsMargins(20, 20, 20, 20)
+        ai_layout.setSpacing(16)
 
-        chat_header = QHBoxLayout()
-        chat_icon = QLabel("🤖")
-        chat_icon.setFont(QFont("Segoe UI", 16))
-        chat_title = QLabel("Asistente de Inteligencia Artificial")
-        chat_title.setFont(QFont("Segoe UI", 12, QFont.Weight.DemiBold))
-        chat_header.addWidget(chat_icon)
-        chat_header.addWidget(chat_title)
-        chat_header.addStretch(1)
-        chat_layout.addLayout(chat_header)
+        ai_header = QHBoxLayout()
+        ai_header.addWidget(QLabel("🧠 Predictor de Vulnerabilidad IA", font=QFont("Segoe UI", 12, QFont.Weight.DemiBold)))
+        ai_header.addStretch()
+        ai_layout.addLayout(ai_header)
 
-        chat_history = QScrollArea()
-        chat_history.setWidgetResizable(True)
-        chat_history.setStyleSheet("background-color: transparent; border: none;")
-        chat_history.setFixedHeight(180)
+        # Formulario de Predicción
+        form_layout = QHBoxLayout()
+        v_form = QVBoxLayout()
+        
+        v_form.addWidget(QLabel("Seleccionar Usuario:", objectName="SubtitleLabel"))
+        self.cmb_ai_user = QComboBox()
+        self.cmb_ai_user.setMinimumWidth(250)
+        v_form.addWidget(self.cmb_ai_user)
 
-        chat_content = QWidget()
-        history_layout = QVBoxLayout(chat_content)
-        history_layout.setSpacing(10)
-        history_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        v_form.addWidget(QLabel("Hipótesis de Ataque:", objectName="SubtitleLabel"))
+        self.cmb_ai_attack = QComboBox()
+        self.cmb_ai_attack.addItems(["Credenciales", "Urgencia", "Incentivo", "Malware"])
+        v_form.addWidget(self.cmb_ai_attack)
 
-        initial_msg = QLabel(
-            "Hola, soy tu asistente de ciberseguridad. Basado en los datos de la última campaña, "
-            "noto que hay vulnerabilidades críticas. ¿Te gustaría que genere "
-            "una campaña específica para mitigarlas o tienes otra consulta?"
-        )
-        initial_msg.setWordWrap(True)
-        initial_msg.setProperty("class", "ai-bot-msg")
-        history_layout.addWidget(initial_msg)
+        btn_row = QHBoxLayout()
+        self.btn_predict = QPushButton("🎯 Calcular Probabilidad")
+        self.btn_predict.setProperty("class", "purple-button")
+        self.btn_predict.clicked.connect(self.calculate_ia_risk)
+        
+        self.btn_worst = QPushButton("⚠️ Hallar Más Vulnerable")
+        self.btn_worst.setProperty("class", "card-button") # Usar un estilo secundario
+        self.btn_worst.setStyleSheet("background-color: #334155; color: white; border-radius: 6px; padding: 10px; font-weight: bold;")
+        self.btn_worst.clicked.connect(self.find_most_vulnerable)
+        
+        btn_row.addWidget(self.btn_predict)
+        btn_row.addWidget(self.btn_worst)
+        v_form.addLayout(btn_row)
 
-        chat_history.setWidget(chat_content)
-        chat_layout.addWidget(chat_history)
+        self.res_ia_lbl = QLabel("Resultado: Pendiente")
+        self.res_ia_lbl.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        self.res_ia_lbl.setStyleSheet("color: #94A3B8; margin-top: 10px;")
+        v_form.addWidget(self.res_ia_lbl)
+        
+        self.res_ia_desc = QLabel("Seleccione un usuario para proyectar su nivel de vulnerabilidad.")
+        self.res_ia_desc.setWordWrap(True)
+        v_form.addWidget(self.res_ia_desc)
+        
+        form_layout.addLayout(v_form, 1)
 
-        chat_input_layout = QHBoxLayout()
-        chat_input = QLineEdit()
-        chat_input.setProperty("class", "ai-input")
-        chat_input.setPlaceholderText("Ej. ¿Qué temática recomiendas para la próxima campaña?")
+        # Gráfico Sigmoide en Tiempo Real
+        self.fig3 = Figure(figsize=(4, 3), facecolor='none')
+        self.ax3 = self.fig3.add_subplot(111)
+        self.canvas3 = FigureCanvas(self.fig3)
+        self.canvas3.setStyleSheet("background-color:transparent;")
+        self.canvas3.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.canvas3.setFixedHeight(220)
+        form_layout.addWidget(self.canvas3, 1)
 
-        send_btn = QPushButton("Preguntar")
-        send_btn.setProperty("class", "purple-button")
-
-        def _simulate_send() -> None:
-            text = chat_input.text().strip()
-            if not text:
-                return
-
-            user_lbl = QLabel(text)
-            user_lbl.setWordWrap(True)
-            user_lbl.setProperty("class", "ai-user-msg")
-            history_layout.addWidget(user_lbl)
-
-            bot_lbl = QLabel("Generando recomendación analítica... (Simulación de IA)")
-            bot_lbl.setWordWrap(True)
-            bot_lbl.setProperty("class", "ai-bot-msg")
-            history_layout.addWidget(bot_lbl)
-
-            chat_input.clear()
-
-            # Auto scroll to bottom
-            scroll_bar = chat_history.verticalScrollBar()
-            scroll_bar.setValue(scroll_bar.maximum())
-
-        send_btn.clicked.connect(_simulate_send)
-        chat_input.returnPressed.connect(_simulate_send)
-
-        chat_input_layout.addWidget(chat_input)
-        chat_input_layout.addWidget(send_btn)
-
-        chat_layout.addLayout(chat_input_layout)
-        layout.addWidget(ai_chat_card)
+        ai_layout.addLayout(form_layout)
+        layout.addWidget(ai_card)
 
         layout.addStretch(1)
-
         scroll.setWidget(page)
 
         outer_layout = QVBoxLayout(self)
@@ -263,25 +248,26 @@ class StatisticsScreen(QWidget):
         total_campaigns = len(self.campaign_data)
         total_users = sum(c['usuarios'] for c in self.campaign_data)
         total_clicks = sum(c['clicks'] for c in self.campaign_data)
-        total_reports = sum(c['reportes'] for c in self.campaign_data)
         
         click_rate = (total_clicks / total_users * 100) if total_users > 0 else 0
-        report_rate = (total_reports / total_users * 100) if total_users > 0 else 0
 
         self.kpi_executed.setText(str(total_campaigns))
         self.kpi_clicks.setText(f"{click_rate:.1f}%")
-        self.kpi_reports.setText(f"{report_rate:.1f}%")
         
-        if total_campaigns > 0:
+        # --- Obtención de Recomendación IA Dinámica ---
+        from database.campaigns import obtener_tendencia_peligrosa
+        cat_peligrosa, riesgo_avg = obtener_tendencia_peligrosa()
+        
+        if cat_peligrosa:
             self.ai_text.setText(
-                f"<b>Análisis IA:</b> Con base en {total_campaigns} campañas evaluadas, "
-                f"la tasa de clics general es del <span style='color:#F59E0B;'>{click_rate:.1f}%</span>. "
-                "Se recomienda continuar la concientización en áreas con mayor interacción y mejorar "
-                "los filtros preventivos para minimizar la exposición de los usuarios."
+                f"<b>💡 Recomendación IA:</b> Se ha detectado que la campaña más factible para que los usuarios caigan es "
+                f"<span style='color:#F59E0B;'>'{cat_peligrosa}'</span> con un riesgo promedio organizacional del "
+                f"<span style='color:#EF4444;'>{riesgo_avg:.1f}%</span>. Se sugiere priorizar esta temática en la siguiente simulación."
             )
         else:
-            self.ai_text.setText("<b>Análisis IA:</b> No existen campañas previas. Realice campañas de prueba para obtener información predictiva.")
+            self.ai_text.setText("<b>Análisis IA:</b> No hay datos suficientes para generar una tendencia. Realice más simulaciones.")
 
+        # Poblar filtros de campañas
         self.cmb_filter.blockSignals(True)
         self.cmb_filter.clear()
         self.cmb_filter.addItem("Todas las campañas", -1)
@@ -289,7 +275,104 @@ class StatisticsScreen(QWidget):
             self.cmb_filter.addItem(f"{c['name']} ({c['attack_type']})", c['id_campaign'])
         self.cmb_filter.blockSignals(False)
         
+        # Poblar Filtro de Usuarios para IA
+        from database.campaigns import obtener_usuarios
+        users = obtener_usuarios()
+        self.cmb_ai_user.clear()
+        for u in users:
+            self.cmb_ai_user.addItem(f"{u['name']} ({u['email']})", u['id_user'])
+            
         self.update_charts()
+        self.update_sigmoid_chart(None, None)
+
+    def calculate_ia_risk(self):
+        """Calcula el riesgo para el usuario seleccionado."""
+        from database.campaigns import predecir_riesgo_ia
+        
+        user_id = self.cmb_ai_user.currentData()
+        if user_id is None: return
+        
+        attack_idx = self.cmb_ai_attack.currentIndex() 
+        
+        prob, clics = predecir_riesgo_ia(user_id, attack_idx)
+        
+        if prob is None:
+            self.res_ia_lbl.setText("Error en IA")
+            self.res_ia_desc.setText(f"Detalle: {clics}")
+            return
+
+        color = "#10B981" if prob < 30 else "#F59E0B" if prob < 60 else "#EF4444"
+        self.res_ia_lbl.setText(f"Probabilidad de Caída: {prob:.1f}%")
+        self.res_ia_lbl.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14pt; margin-top: 10px;")
+        
+        user_name = self.cmb_ai_user.currentText().split(" (")[0]
+        at_name = self.cmb_ai_attack.currentText()
+        
+        self.res_ia_desc.setText(
+            f"El usuario <b>{user_name}</b> tiene un historial de <b>{clics} clics en esta categoría</b>. "
+            f"Ante un ataque de tipo <b>{at_name}</b>, el modelo estima una vulnerabilidad del {prob:.1f}%."
+        )
+        
+        self.update_sigmoid_chart(prob, clics)
+
+    def find_most_vulnerable(self):
+        """Busca al usuario con el porcentaje más alto en la base de datos."""
+        from database.campaigns import obtener_usuarios, predecir_riesgo_ia
+        users = obtener_usuarios()
+        if not users: return
+        
+        attack_idx = self.cmb_ai_attack.currentIndex()
+        max_prob = -1
+        best_user = None
+        best_clics = 0
+        
+        for u in users:
+            p, c = predecir_riesgo_ia(u['id_user'], attack_idx)
+            if p is not None and p > max_prob:
+                max_prob = p
+                best_user = u
+                best_clics = c
+                
+        if best_user:
+            idx = self.cmb_ai_user.findData(best_user['id_user'])
+            self.cmb_ai_user.setCurrentIndex(idx)
+            
+            color = "#EF4444" if max_prob > 50 else "#F59E0B"
+            self.res_ia_lbl.setText(f"CRÍTICO: {max_prob:.1f}%")
+            self.res_ia_lbl.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14pt; margin-top: 10px;")
+            self.res_ia_desc.setText(
+                f"🚨 Usuario con mayor riesgo en esta categoría: <b>{best_user['name']}</b>. "
+                f"Probabilidad de {max_prob:.1f}% basada en {best_clics} clics previos en '{self.cmb_ai_attack.currentText()}'."
+            )
+            self.update_sigmoid_chart(max_prob, best_clics)
+
+    def update_sigmoid_chart(self, current_prob, clics):
+        self.ax3.clear()
+        self.ax3.set_facecolor('none')
+        self.ax3.spines["top"].set_visible(False)
+        self.ax3.spines["right"].set_visible(False)
+        self.ax3.spines["bottom"].set_color((1, 1, 1, 0.1))
+        self.ax3.spines["left"].set_color((1, 1, 1, 0.1))
+        self.ax3.tick_params(axis="both", colors="#94A3B8", labelsize=7)
+        self.ax3.set_title("Curva de Probabilidad IA", color="#E2E8F0", fontsize=9, fontweight="bold")
+
+        # Generar Curva Sigmoide teórica (0 a 15 clics)
+        x = np.linspace(0, 15, 100)
+        # Una sigmoide simple para representación visual (ajustada para que se vea bien)
+        y = 1 / (1 + np.exp(-(0.5 * x - 2)))
+        
+        self.ax3.plot(x, y, color="#60A5FA", alpha=0.4, linewidth=2)
+        
+        if current_prob is not None:
+            # Dibujar el punto del usuario actual
+            # clics es el eje X, prob/100 es el eje Y
+            p_y = current_prob / 100
+            color = "#10B981" if current_prob < 30 else "#F59E0B" if current_prob < 60 else "#EF4444"
+            self.ax3.plot([clics], [p_y], marker="o", markersize=10, markerfacecolor=color, markeredgecolor="white")
+            self.ax3.annotate(f"{current_prob:.0f}%", (clics, p_y), textcoords="offset points", xytext=(0,10), 
+                             ha='center', color=color, weight='bold', fontsize=8)
+
+        self.canvas3.draw()
 
     def update_charts(self):
         self.ax1.clear()

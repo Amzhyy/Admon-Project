@@ -206,3 +206,121 @@ def obtener_campanas():
         import traceback
         traceback.print_exc()
         return []
+
+def obtener_usuarios():
+    """Retorna todos los usuarios registrados para el selector de la IA."""
+    try:
+        conexion = conectar()
+        cursor = conexion.cursor(dictionary=True)
+        cursor.execute("SELECT id_user, name, email, rol FROM user")
+        usuarios = cursor.fetchall()
+        conexion.close()
+        return usuarios
+    except Exception as e:
+        print(f"Error obteniendo usuarios: {e}")
+        return []
+
+def predecir_riesgo_ia(id_user, attack_type_id):
+    """
+    Carga el modelo ML y predice la probabilidad de caída.
+    attack_type_id: 0: Credenciales, 1: Urgencia, 2: Incentivo, 3: Malware
+    """
+    import joblib
+    import numpy as np
+    import os
+    import pandas as pd
+    
+    # Buscar el modelo en el directorio actual o en el padre (raíz del proyecto)
+    model_filenames = ['modelo_phishing.pkl', 'phishing_model.pkl']
+    model_path = None
+    
+    for filename in model_filenames:
+        if os.path.exists(filename):
+            model_path = filename
+            break
+        # Buscar en el directorio padre (si estamos dentro de admon_project o database)
+        parent_path = os.path.join('..', filename)
+        if os.path.exists(parent_path):
+            model_path = parent_path
+            break
+            
+    if not model_path:
+        return None, f"Archivo de modelo '{model_filenames[0]}' no encontrado. Asegúrese de que esté en la raíz del proyecto."
+
+    try:
+        conexion = conectar()
+        cursor = conexion.cursor(dictionary=True)
+        
+        # Mapeo de IDs a strings de la base de datos
+        mapping_db = {0: "password_reset", 1: "urgent_request", 2: "survey_reward", 3: "attachment_malware"}
+        target_at = mapping_db.get(attack_type_id, "password_reset")
+
+        # 1. Obtener Clics previos Filtrados por CATEGORÍA DE ATAQUE
+        query_clics = """
+            SELECT SUM(r.clic) as total_clics 
+            FROM result r
+            JOIN email e ON r.id_email = e.id_email
+            JOIN campaign c ON e.id_campaign = c.id_campaign
+            WHERE e.id_user = %s AND c.attack_type = %s
+        """
+        cursor.execute(query_clics, (id_user, target_at))
+        res_clics = cursor.fetchone()
+        clics_previos = res_clics['total_clics'] if res_clics['total_clics'] else 0
+        
+        # 2. Obtener Rol del usuario y mapear a ID
+        cursor.execute("SELECT rol FROM user WHERE id_user = %s", (id_user,))
+        res_user = cursor.fetchone()
+        conexion.close()
+        
+        if not res_user:
+            return None, "Usuario no encontrado."
+            
+        rol_str = res_user['rol'].lower() if res_user['rol'] else "analista"
+        rol_id = 1 if "admin" in rol_str else 2
+        
+        # 3. Preparar datos para el modelo
+        duracion_estandar = 7
+        X_input = pd.DataFrame([[attack_type_id, clics_previos, duracion_estandar, rol_id]], 
+                               columns=['attack_type_id', 'clics_previos_usuario', 'duracion_dias_campana', 'rol_usuario_id'])
+        
+        # 4. Cargar modelo y predecir
+        modelo = joblib.load(model_path)
+        probabilidad = modelo.predict_proba(X_input)[0][1]
+        
+        return float(probabilidad * 100), clics_previos
+        
+    except Exception as e:
+        print(f"Error en predicción IA: {e}")
+        return None, str(e)
+
+def obtener_tendencia_peligrosa():
+    """Analiza a todos los usuarios contra todos los ataques y halla la tendencia más factible."""
+    try:
+        usuarios = obtener_usuarios()
+        if not usuarios:
+            return None, 0
+            
+        mapping_nombres = {0: "Credenciales", 1: "Urgencia", 2: "Incentivo", 3: "Malware"}
+        riesgos_promedio = {}
+        
+        for at_id in range(4):
+            total_prob = 0
+            count = 0
+            for u in usuarios:
+                prob, _ = predecir_riesgo_ia(u['id_user'], at_id)
+                if prob is not None:
+                    total_prob += prob
+                    count += 1
+            if count > 0:
+                riesgos_promedio[at_id] = total_prob / count
+        
+        if not riesgos_promedio:
+            return None, 0
+            
+        # Hallar el ID con mayor riesgo
+        peor_at_id = max(riesgos_promedio, key=riesgos_promedio.get)
+        return mapping_nombres[peor_at_id], riesgos_promedio[peor_at_id]
+        
+    except Exception as e:
+        print(f"Error obteniendo tendencia: {e}")
+        return None, 0

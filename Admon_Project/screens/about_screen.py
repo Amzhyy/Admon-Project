@@ -52,15 +52,15 @@ class AboutScreen(QWidget):
         team_layout.setSpacing(18)
 
         team_members = [
-            ("Integrante 1", "Rol principal"),
-            ("Integrante 2", "Rol principal"),
-            ("Integrante 3", "Rol principal"),
-            ("Integrante 4", "Rol principal"),
-            ("Integrante 5", "Rol principal"),
-            ("Integrante 6", "Rol principal"),
-            ("Integrante 7", "Rol principal"),
-            ("Integrante 8", "Rol principal"),
-            ("Integrante 9", "Rol principal"),
+            ("Alfonso Uriel Rodriguez Ruiz", "Programador Phising"),
+            ("Moisés Abdiel Torres Méndez", "Programador LLM"),
+            ("Carlos Romo Rentería", "Tester"),
+            ("Xavier Alejandro Gómez López", "Diseño de UI"),
+            ("Natán Asael Peña Hernández", "Programador UI"),
+            ("Erik Rivera Jose", "Programador Account Lookup"),
+            ("Ernesto Jared Rangel Reyes", "Tester"),
+            ("Dahir Gallegos Marrufo", "Tester"),
+            ("Dana Paola Ríos Reyes", "Diseño UI"),
         ]
 
         for index, (name, role) in enumerate(team_members):

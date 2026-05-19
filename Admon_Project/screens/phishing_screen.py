@@ -1,16 +1,9 @@
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
-    QHeaderView,
+    QHBoxLayout, QHeaderView, QLabel, QPushButton,
+    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
-
 from database.campaigns import obtener_campanas
 
 
@@ -18,192 +11,229 @@ class PhishingScreen(QWidget):
     def __init__(self, on_new_campaign: callable, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
-        # self.setProperty("class", "content-shell")
-
         layout = QVBoxLayout(self)
-        layout.setSpacing(24)
+        layout.setSpacing(20)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        # Header
-        header_inner = QWidget()
-        header_layout = QHBoxLayout(header_inner)
-        header_layout.setContentsMargins(0, 0, 0, 0)
+        # ── Cabecera ─────────────────────────────────────────────────────────
+        header_w = QWidget()
+        header_lay = QHBoxLayout(header_w)
+        header_lay.setContentsMargins(0, 0, 0, 0)
 
-        title_layout = QVBoxLayout()
-        title_layout.setSpacing(4)
-        title = QLabel("Simulaciones de Phishing")
-        title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        subtitle = QLabel("Crea y gestiona campañas de simulación de correos de phishing")
-        subtitle.setObjectName("SubtitleLabel")
-        title_layout.addWidget(title)
-        title_layout.addWidget(subtitle)
+        titles = QVBoxLayout()
+        titles.setSpacing(3)
+        t = QLabel("Simulaciones de Phishing")
+        t.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        s = QLabel("Gestiona campañas de simulación y analiza resultados de clic")
+        s.setObjectName("SubtitleLabel")
+        titles.addWidget(t)
+        titles.addWidget(s)
+        header_lay.addLayout(titles)
+        header_lay.addStretch(1)
 
-        header_layout.addLayout(title_layout)
-        header_layout.addStretch(1)
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(8)
 
-        create_button = QPushButton("+ Nueva Campaña")
-        create_button.setProperty("class", "purple-button")
-        create_button.clicked.connect(on_new_campaign)
-        header_layout.addWidget(create_button, alignment=Qt.AlignmentFlag.AlignTop)
+        refresh_btn = QPushButton("↺  Actualizar")
+        refresh_btn.setStyleSheet(
+            "QPushButton { background: rgba(255,255,255,0.05); color: #94A3B8; "
+            "border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; "
+            "padding: 7px 14px; font-size: 9.5pt; }"
+            "QPushButton:hover { background: rgba(255,255,255,0.10); color: #E2E8F0; }"
+        )
+        refresh_btn.clicked.connect(self.load_campaigns)
 
-        layout.addWidget(header_inner)
+        create_btn = QPushButton("＋  Nueva Campaña")
+        create_btn.setProperty("class", "purple-button")
+        create_btn.clicked.connect(on_new_campaign)
 
-        # Stat cards
-        stats_widget = QWidget()
-        stats_layout = QHBoxLayout(stats_widget)
-        stats_layout.setContentsMargins(0, 0, 0, 0)
-        stats_layout.setSpacing(16)
+        btn_row.addWidget(refresh_btn)
+        btn_row.addWidget(create_btn)
+        header_lay.addLayout(btn_row)
+        layout.addWidget(header_w)
 
-        self.stats_data = {
-            "Total Campañas": "0",
-            "Activas": "0",
-            "Finalizadas": "0",
-            "Clics Totales": "0"
-        }
-        
-        self.stats_widgets = {}
+        # ── Stat cards ────────────────────────────────────────────────────────
+        stats_w = QWidget()
+        stats_lay = QHBoxLayout(stats_w)
+        stats_lay.setContentsMargins(0, 0, 0, 0)
+        stats_lay.setSpacing(14)
 
-        stats_base = [
-            ("Total Campañas", "✉"),
-            ("Activas", "⏱"),
-            ("Finalizadas", "✓"),
-            ("Clics Totales", "🖱"),
-        ]
+        self._stat_labels: dict[str, QLabel] = {}
 
-        for lbl, icon_text in stats_base:
+        for icon, label, color in [
+            ("✉", "Total Campañas", "#3B82F6"),
+            ("⏱", "Activas",        "#10B981"),
+            ("✓", "Finalizadas",    "#6B7280"),
+            ("🖱", "Clics Totales",  "#F59E0B"),
+            ("⚑", "Reportes",       "#A78BFA"),
+        ]:
             card = QWidget()
             card.setProperty("class", "stat-card")
-            card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(20, 20, 20, 20)
+            cl = QVBoxLayout(card)
+            cl.setContentsMargins(18, 16, 18, 16)
+            cl.setSpacing(4)
 
-            icon_lbl = QLabel(icon_text)
+            icon_lbl = QLabel(icon)
             icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            icon_lbl.setStyleSheet(f"font-size: 16pt; color: {color};")
 
-            val_lbl = QLabel("0")
+            val_lbl = QLabel("—")
             val_lbl.setObjectName("StatValue")
             val_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            val_lbl.setStyleSheet(f"font-size: 20pt; font-weight: bold; color: {color};")
 
-            text_lbl = QLabel(lbl)
-            text_lbl.setObjectName("StatLabel")
-            text_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            txt_lbl = QLabel(label)
+            txt_lbl.setObjectName("StatLabel")
+            txt_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            card_layout.addWidget(icon_lbl)
-            card_layout.addSpacing(10)
-            card_layout.addWidget(val_lbl)
-            card_layout.addWidget(text_lbl)
+            cl.addWidget(icon_lbl)
+            cl.addWidget(val_lbl)
+            cl.addWidget(txt_lbl)
 
-            self.stats_widgets[lbl] = val_lbl
-            stats_layout.addWidget(card)
+            self._stat_labels[label] = val_lbl
+            stats_lay.addWidget(card)
 
-        layout.addWidget(stats_widget)
+        layout.addWidget(stats_w)
 
-        # Table region
+        # ── Tabla de campañas ─────────────────────────────────────────────────
         table_card = QWidget()
         table_card.setProperty("class", "card")
-        table_layout = QVBoxLayout(table_card)
-        table_layout.setContentsMargins(20, 20, 20, 20)
-        table_layout.setSpacing(16)
+        tl = QVBoxLayout(table_card)
+        tl.setContentsMargins(18, 16, 18, 18)
+        tl.setSpacing(12)
 
-        table_title = QLabel("Campañas")
-        table_title.setFont(QFont("Segoe UI", 12, QFont.Weight.DemiBold))
-        table_layout.addWidget(table_title)
+        thead = QHBoxLayout()
+        tl.addLayout(thead)
+        tcard_title = QLabel("Historial de Campañas")
+        tcard_title.setFont(QFont("Segoe UI", 11, QFont.Weight.DemiBold))
+        thead.addWidget(tcard_title)
+        thead.addStretch(1)
 
-        campaign_table = QTableWidget(4, 8)
-        campaign_table.setHorizontalHeaderLabels(
-            ["ID", "Nombre", "Tipo", "Estado", "Usuarios", "% Aperturas", "% Clics", "Reportes"]
+        self._last_update_lbl = QLabel("")
+        self._last_update_lbl.setStyleSheet("color: #475569; font-size: 8.5pt;")
+        thead.addWidget(self._last_update_lbl)
+
+        # FIXED: tabla inicializada sin filas (antes era QTableWidget(4, 8))
+        self.campaign_table = QTableWidget(0, 8)
+        self.campaign_table.setHorizontalHeaderLabels([
+            "ID", "Nombre", "Tipo de Ataque", "Estado",
+            "Usuarios", "Aperturas", "% Clics", "Reportes",
+        ])
+        hdr = self.campaign_table.horizontalHeader()
+        # FIXED: modo correcto — stretch para columna de nombre, resto ResizeToContents
+        hdr.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        hdr.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.campaign_table.verticalHeader().setVisible(False)
+        self.campaign_table.setShowGrid(False)
+        # FIXED: SelectRows (antes era NoSelection, imposible interactuar)
+        self.campaign_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.campaign_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.campaign_table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.campaign_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.campaign_table.setAlternatingRowColors(True)
+        self.campaign_table.setStyleSheet(
+            "QTableWidget { background: transparent; gridline-color: #1E293B; border: none; }"
+            "QTableWidget::item:alternate { background: rgba(255,255,255,0.02); }"
+            "QTableWidget::item:selected { background: rgba(59,130,246,0.18); color: #E2E8F0; }"
+            "QHeaderView::section { background: #111827; color: #475569; border: none; "
+            "padding: 8px 6px; font-size: 9pt; font-weight: 600; "
+            "border-bottom: 1px solid #1E293B; }"
         )
+        tl.addWidget(self.campaign_table)
 
-        # Adjust table behavior
-        campaign_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        campaign_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        campaign_table.verticalHeader().setVisible(False)
-        campaign_table.setShowGrid(False)
-        campaign_table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        campaign_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
-        campaign_table.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        self.campaign_table = campaign_table
-        table_layout.addWidget(self.campaign_table)
+        # Estado vacío
+        self._empty_lbl = QLabel("No hay campañas registradas. Crea una con el botón «＋ Nueva Campaña».")
+        self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_lbl.setStyleSheet("color: #334155; font-size: 10pt; padding: 40px;")
+        self._empty_lbl.setVisible(False)
+        tl.addWidget(self._empty_lbl)
 
         layout.addWidget(table_card, 1)
 
-        # Load campaigns directly on init
+        # ── Timer de auto-refresco ─────────────────────────────────────────────
+        # FIXED: 30s en lugar de 5s para no saturar la DB
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self.load_campaigns)
+        self._timer.start(30_000)
+
         self.load_campaigns()
 
-        # Timer for auto-refresh (every 5 seconds)
-        self.refresh_timer = QTimer(self)
-        self.refresh_timer.timeout.connect(self.load_campaigns)
-        self.refresh_timer.start(5000)  # 5 seconds
+    # ─────────────────────────────────────────────────────────────────────────
+    def load_campaigns(self) -> None:
+        try:
+            campanas = obtener_campanas()
+        except Exception as e:
+            self._last_update_lbl.setText(f"Error de conexión: {e}")
+            return
 
-    def load_campaigns(self):
-        campanas = obtener_campanas()
-        
         self.campaign_table.setRowCount(0)
-        
-        total = len(campanas)
-        activas = sum(1 for c in campanas if c.get("estado") == "active")
-        finalizadas = sum(1 for c in campanas if c.get("estado") == "finished")
-        clics_totales = sum(c.get("clicks") or 0 for c in campanas)
-        
-        self.stats_widgets["Total Campañas"].setText(str(total))
-        self.stats_widgets["Activas"].setText(str(activas))
-        self.stats_widgets["Finalizadas"].setText(str(finalizadas))
-        self.stats_widgets["Clics Totales"].setText(str(clics_totales))
-        
+
+        total      = len(campanas)
+        activas    = sum(1 for c in campanas if c.get("estado") == "active")
+        fin        = sum(1 for c in campanas if c.get("estado") == "finished")
+        clics      = sum(c.get("clicks") or 0  for c in campanas)
+        reportes   = sum(c.get("reportes") or 0 for c in campanas)
+
+        self._stat_labels["Total Campañas"].setText(str(total))
+        self._stat_labels["Activas"].setText(str(activas))
+        self._stat_labels["Finalizadas"].setText(str(fin))
+        self._stat_labels["Clics Totales"].setText(str(clics))
+        self._stat_labels["Reportes"].setText(str(reportes))
+
+        # Mostrar estado vacío si no hay campañas
+        self._empty_lbl.setVisible(total == 0)
+        self.campaign_table.setVisible(total > 0)
+
+        _TIPO = {
+            "password_reset":    "Credenciales",
+            "urgent_request":    "Urgencia",
+            "survey_reward":     "Incentivo",
+            "attachment_malware":"Malware",
+        }
+
         self.campaign_table.setRowCount(total)
-        
-        for r, cmp in enumerate(campanas):
-            # mapping values
-            id_text = f"CAM-{cmp.get('id_campaign', 0):03d}"
-            nombre = cmp.get("name", "N/A")
-            
-            tipo_map = {
-                "password_reset": "Credenciales",
-                "urgent_request": "Urgencia",
-                "survey_reward": "Incentivo",
-                "attachment_malware": "Malware"
-            }
-            tipo = tipo_map.get(cmp.get("attack_type", ""), "Credenciales")
-            
-            estado = "Activa" if cmp.get("estado") == "active" else "Finalizada"
-            usuarios = str(cmp.get("usuarios", 0))
-            
-            # Percentages
-            usuarios_int = cmp.get("usuarios") or 0
-            aperturas = cmp.get("aperturas") or 0
-            clicks = cmp.get("clicks") or 0
-            
-            pct_aperturas = int((aperturas / usuarios_int * 100)) if usuarios_int > 0 else 0
-            pct_clics = int((clicks / usuarios_int * 100)) if usuarios_int > 0 else 0
-            
-            estr_pct_ap = f"{pct_aperturas}%"
-            estr_pct_cl = f"{pct_clics}%"
-            reportes = str(cmp.get("reportes") or 0)
-            
-            row_data = [
-                id_text, nombre, tipo, estado, usuarios, estr_pct_ap, estr_pct_cl, reportes
+        for r, c in enumerate(campanas):
+            usuarios_int  = c.get("usuarios")  or 0
+            aperturas_int = c.get("aperturas") or 0
+            clicks_int    = c.get("clicks")    or 0
+            rep_int       = c.get("reportes")  or 0
+
+            pct_clics = round(clicks_int / usuarios_int * 100) if usuarios_int else 0
+            estado_str = "Activa" if c.get("estado") == "active" else "Finalizada"
+
+            row = [
+                f"CAM-{c.get('id_campaign', 0):03d}",
+                c.get("name", "—"),
+                _TIPO.get(c.get("attack_type", ""), "—"),
+                estado_str,
+                str(usuarios_int),
+                str(aperturas_int),
+                f"{pct_clics}%",
+                str(rep_int),
             ]
-            
-            for c, text in enumerate(row_data):
+
+            for col, text in enumerate(row):
                 item = QTableWidgetItem(text)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
-                if c == 0:  # ID
+                if col == 0:   # ID
                     item.setForeground(QColor("#60A5FA"))
-                elif c == 3:  # Estado
-                    if text == "Finalizada":
-                        item.setForeground(QColor("#9CA3AF"))
-                    else:
-                        item.setForeground(QColor("#34D399"))
-                elif c == 6:  # Clics
-                    # color por %
-                    if pct_clics > 15:
-                        item.setForeground(QColor("#F97316"))
-                elif c == 7:  # Reportes
-                    item.setForeground(QColor("#34D399"))
+                elif col == 3: # Estado
+                    item.setForeground(QColor("#10B981") if estado_str == "Activa" else QColor("#475569"))
+                elif col == 6: # % Clics — rojo si alto
+                    if pct_clics > 30:
+                        item.setForeground(QColor("#EF4444"))
+                    elif pct_clics > 15:
+                        item.setForeground(QColor("#F59E0B"))
+                elif col == 7: # Reportes — verde
+                    item.setForeground(QColor("#10B981"))
 
-                if c >= 4:
+                if col >= 4:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                else:
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
 
-                self.campaign_table.setItem(r, c, item)
+                self.campaign_table.setItem(r, col, item)
 
+        from PyQt6.QtCore import QDateTime
+        self._last_update_lbl.setText(
+            f"Actualizado: {QDateTime.currentDateTime().toString('HH:mm:ss')}"
+        )

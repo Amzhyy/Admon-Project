@@ -1,7 +1,12 @@
-import numpy as np
-import matplotlib.patches as mpatches
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+try:
+    import numpy as np
+    import matplotlib.patches as mpatches
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.figure import Figure
+    _MATPLOTLIB_OK = True
+except ImportError:
+    _MATPLOTLIB_OK = False
+    FigureCanvas = None
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -317,21 +322,25 @@ class StatisticsScreen(QWidget):
 
     def find_most_vulnerable(self):
         """Busca al usuario con el porcentaje más alto en la base de datos."""
-        from database.campaigns import obtener_usuarios, predecir_riesgo_ia
+        from database.campaigns import obtener_usuarios, predecir_riesgo_lote
         users = obtener_usuarios()
         if not users: return
-        
+
         attack_idx = self.cmb_ai_attack.currentIndex()
+
+        # Batch: una sola conexión + modelo cacheado para todos los usuarios
+        user_ids = [u['id_user'] for u in users]
+        lote = predecir_riesgo_lote(user_ids, attack_idx)
+
         max_prob = -1
         best_user = None
         best_clics = 0
-        
         for u in users:
-            p, c = predecir_riesgo_ia(u['id_user'], attack_idx)
+            p, c = lote.get(u['id_user'], (None, 0))
             if p is not None and p > max_prob:
                 max_prob = p
                 best_user = u
-                best_clics = c
+                best_clics = c if isinstance(c, int) else 0
                 
         if best_user:
             idx = self.cmb_ai_user.findData(best_user['id_user'])
